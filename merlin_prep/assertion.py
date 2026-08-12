@@ -54,9 +54,20 @@ NEG_INNER = re.compile(
     r"\b(?:not|without)\b|\bno\b(?!\w)|"
     # Closed-form negations: "the main pancreatic duct is nondilated" reads as
     # dilation present because \bno\b cannot match a glued "non" prefix.
-    # Deliberately excludes nonspecific / nonenhancing / nonaggressive -- those
-    # describe a finding that IS present, they do not deny it.
-    r"\bnon-?(?:dilat|obstruct|enlarg|distend|occlus)\w*",
+    #
+    # `aneurysm` is here and NOT in NEG_PRE, because word order decides which
+    # side the prefix lands on. "Nonaneurysmal aorta" matches the pattern from
+    # "aneurysmal", leaving "Non" in `pre` where NEG_PRE already catches it.
+    # "Aorta which is nonaneurysmal" matches from "aorta", swallowing the
+    # prefix into `inner` -- 20 studies were scored as having an aneurysm on
+    # exactly that sentence. Putting it in NEG_PRE too would misfire, since
+    # "Nonaneurysmal aorta with calcified plaque" *does* have atherosclerosis.
+    #
+    # Deliberately excludes forms where the finding is present and `non` only
+    # qualifies it: nonspecific, nonenhancing, nondisplaced (the fracture is
+    # there), nonunion (likewise), noncalcified (noncalcified gallstones are
+    # still gallstones), nondependent (an anatomical location).
+    r"\bnon-?(?:dilat|obstruct|enlarg|distend|occlus|aneurysm)\w*",
     re.IGNORECASE,
 )
 
