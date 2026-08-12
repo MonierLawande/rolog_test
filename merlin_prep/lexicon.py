@@ -177,3 +177,57 @@ OTHER_ORGAN = _c(r"append\w*|colon\w*|colect\w*|colostom\w*|hemicolect\w*|"
                  r"nephrect\w*|uter\w*|hysterect\w*|ovar\w*|prostat\w*|bladder|"
                  r"stomach|gastrect\w*|gastric|small bowel|ileum|ileal|jejun\w*|"
                  r"liver|hepat\w*|lung|thyroid|adrenal|hernia\w*|aort\w*")
+
+
+# --------------------------------------------------------------------------
+# Normal-organ statements.
+#
+# The single largest source of unresolved `-1`. Radiologists assert absence by
+# declaring the organ normal, never naming the finding: "Spleen: Normal" denies
+# splenomegaly without the word appearing anywhere. A finding-term matcher is
+# structurally blind to this, which is why our first pass reproduced only 7.7%
+# of the corpus as negative against Stanford's 17.8%.
+#
+# That Stanford used exactly this signal is measurable: `Abdominal wall: Normal`
+# occurs 10,025 times and their `anasarca = 0` count is 10,030. But they applied
+# it inconsistently -- the same `Kidneys and ureters: Normal` line drives their
+# `renal_cyst = 0` (7,199 studies) and almost never their `hydronephrosis = 0`
+# (444). Those gaps are the -1 cells this map resolves.
+#
+# Mapping rule: a header may only negate findings that must be visible *in that
+# section*. `Bladder:` and `Adrenal glands:` are the two most frequent normal
+# statements in the corpus and appear here for nothing, because no zero-shot
+# finding lives in them.
+NORMAL_WORD = r"(?:normal|unremarkable|within normal limits|wnl)"
+
+_NORMAL_SECTION = {
+    "splenomegaly": r"spleen",
+    "hepatomegaly": r"liver(?: and biliary tree)?",
+    "hepatic_steatosis": r"liver(?: and biliary tree)?",
+    "biliary_ductal_dilation": r"liver and biliary tree|gallbladder/bile ducts",
+    "gallstones": r"gallbladder(?:/bile ducts)?",
+    "surgically_absent_gallbladder": r"gallbladder(?:/bile ducts)?",
+    "renal_cyst": r"kidneys?(?: and ureters)?",
+    "renal_hypodensities": r"kidneys?(?: and ureters)?",
+    "hydronephrosis": r"kidneys?(?: and ureters)?",
+    "prostatomegaly": r"prostate(?: and seminal vesicles)?",
+    "lymphadenopathy": r"lymph nodes?",
+    "anasarca": r"abdominal wall",
+    "osteopenia": r"musculoskeletal|bones|osseous(?: structures)?",
+    "fracture": r"musculoskeletal|bones|osseous(?: structures)?",
+    "bowel_obstruction": r"gastrointestinal tract|bowel|gi(?: tract)?",
+    "appendicitis": r"appendix",
+    "ascites": r"peritoneal cavity|peritoneum",
+    "free_air": r"peritoneal cavity|peritoneum",
+    "atherosclerosis": r"vasculature|vascular|vessels",
+    "abdominal_aortic_aneurysm": r"vasculature|vascular|vessels",
+    "thrombosis": r"vasculature|vascular|vessels",
+    "pancreatic_atrophy": r"pancreas",
+}
+
+# Anchored to a line/sentence start so "no evidence of a normal appendix" and
+# prose containing a colon cannot trigger it.
+NORMAL_SECTION = {
+    k: _c(rf"(?:^|[.\n;])\s*(?:{v})\s*:\s*{NORMAL_WORD}\b")
+    for k, v in _NORMAL_SECTION.items()
+}

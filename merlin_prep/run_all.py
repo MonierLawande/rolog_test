@@ -4,7 +4,7 @@ import time
 
 import pandas as pd
 
-from . import assemble, classes5, config as C, extract, ingest, pancreas, regex_zero_shot, validate
+from . import assemble, classes5, config as C, extract, ingest, pancreas, validate, zero_shot_update
 
 
 def main() -> None:
@@ -40,12 +40,14 @@ def main() -> None:
     cols = assemble.final_columns(study)
     study[cols].to_csv(C.OUT / "merlin_pancreas_dataset.csv", index=False)
 
-    # Drop-in replacement for Stanford's zero_shot file, built from our rules.
-    zs_flat, zs_full = regex_zero_shot.build(study)
-    zs_flat.to_csv(C.OUT / "zero_shot_findings_regex.csv", index=False)
-    zs_full.to_csv(C.OUT / "zero_shot_findings_regex_full.csv", index=False)
-    regex_zero_shot.compare_to_original(zs_flat).to_csv(
-        C.OUT / "zero_shot_regex_vs_original.csv", index=False)
+    # Stanford's file with its -1 cells resolved. Their 0/1 are never touched;
+    # we do not have the rules to rebuild the file from scratch, and that is
+    # measured rather than assumed -- see zero_shot_update.__doc__.
+    zs_upd, zs_delta = zero_shot_update.build(study)
+    zs_upd.to_csv(C.OUT / "zero_shot_findings_updated.csv", index=False)
+    zs_delta.to_csv(C.OUT / "zero_shot_update_delta.csv", index=False)
+    zero_shot_update.resolved_cells(study).to_csv(
+        C.OUT / "zero_shot_resolved_cells.csv", index=False)
 
     # Kept out of the main table (long free text) but needed for manual review.
     study[["study_id", "pancreas_context", "pancreas_context_source"]].to_csv(

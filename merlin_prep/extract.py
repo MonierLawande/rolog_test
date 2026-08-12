@@ -67,6 +67,15 @@ def extract_row(text: str) -> dict:
     # 29 findings -- self-identifying terms, whole-report scope.
     for name in C.OTHER_FINDINGS:
         state, ev = A.classify_concept(text, L.OTHER_PATTERNS[name])
+        # Fallback for the silent negative: the finding term never appears, but
+        # the section that would have to contain it is declared normal. Fires
+        # ONLY on not_mentioned, so any positive, hedged or historical evidence
+        # found in the report -- including in the impression, outside the
+        # section -- keeps precedence over the section header.
+        if state == A.NOT_MENTIONED and name in L.NORMAL_SECTION:
+            m = L.NORMAL_SECTION[name].search(text)
+            if m:
+                state, ev = A.ABSENT, m.group(0).strip(".\n; ")[:220]
         row[f"ext_{name}"] = state
         row[f"ev_{name}"] = ev
 
